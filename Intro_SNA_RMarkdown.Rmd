@@ -1,30 +1,49 @@
 ---
-title: "Intro_SNA"
+title: "Introduction to Social Network Analysis"
 author: "Chanya Punyakumpol"
-date: "4/7/2022"
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+date: "Last edited `r format(Sys.Date(), '%B %d, %Y')`"
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.align = 'center', echo = TRUE)
 ```
 
-## R Markdown
+# I. Getting to know the dataset
+Welcome to Introduction to Social Network Analysis workshop! This file will introduce to you the concept of social network analysis and its application to international law research. The objectives of this workshop are:
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+- to familize you with the concept of social network in a practical sense by working on a real data set;
+- to walk you through all steps necessary to create a network in R, as well as simple network visualizations;
+- to introduce basic features of a social network that provides insights into a relationship of interests; 
+- to help you learn how to perform basic network analytics such as clustering and community detection; and
+- to introduce you to some advanced topics that may be of interest to you.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+## A. Setting up the workspace
 
-```{r cars}
-summary(cars)
-```
+First, create a new R Project on your computer. Make sure that you know where you save this R project. All of the outputs you have will be saved in this folder.
 
-## Including Plots
+Second, you will have to import the data, which we will use throughout the workshop, which you can download from [here](https://www.designoftradeagreements.org/media/filer_public/ab/ee/abee41ef-f5e5-44b6-91db-5e8befe48fe5/desta_list_of_treaties_02_01_dyads.xlsx). The data set is from the [DESTA](https://www.designoftradeagreements.org/) (Design of Trade Agreements) Database, a project that contains comprehensive data on various types of preferential trade agreements (PTAs). After downloading the data set, store the file in the same path as your R Project.
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+# II. Creating a network
+
+## A. From the edgelist
+
+## B. From the adjacency matrix
+
+# III. Descriptives of the network
+
+## A. Simple visualizations
+
+## B. Basic descriptions of the network
+
+## C. Network Centralities
+
+# IV. Clustering and community detection
+
+# V. More advanced topics
