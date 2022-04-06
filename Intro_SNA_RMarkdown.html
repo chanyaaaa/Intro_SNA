@@ -249,18 +249,78 @@ div.tocify {
 
 <div id="i.-getting-to-know-the-dataset" class="section level1">
 <h1>I. Getting to know the dataset</h1>
-<p>Welcome to Introduction to Social Network Analysis workshop! This file will introduce to you the concept of social network analysis and its application to international law research. The objectives of this workshop are:</p>
+<p>Welcome to Introduction to Social Network Analysis workshop! This file will introduce to you the concept of social network analysis and its application to international law research. The workshop is specifically designed for law students with some limited backgrounds about R. If you have no knowledge or no background about R, I highly recommend that you take some basic introductions to R, including working with vectors, lists, matrices, data wrangling, and data visualization. Hence, in taking this workshop, I assume that you have some of those basic knowledge of R.</p>
+<p>The objectives of this workshop are:</p>
 <ul>
-<li>to familize you with the concept of social network in a practical sense by working on a real data set;</li>
+<li>to familiarize you with the concept of social network in a practical sense by working on a real data set;</li>
 <li>to walk you through all steps necessary to create a network in R, as well as simple network visualizations;</li>
 <li>to introduce basic features of a social network that provides insights into a relationship of interests;</li>
 <li>to help you learn how to perform basic network analytics such as clustering and community detection; and</li>
 <li>to introduce you to some advanced topics that may be of interest to you.</li>
 </ul>
+<p>At the end of the workshop, you should be able to adapt what you have learned to your own legal research.</p>
 <div id="a.-setting-up-the-workspace" class="section level2">
 <h2>A. Setting up the workspace</h2>
-<p>First, create a new R Project on your computer. Make sure that you know where you save this R project. All of the outputs you have will be saved in this folder.</p>
-<p>Second, you will have to import the data, which we will use throughout the workshop, which you can download from <a href="https://www.designoftradeagreements.org/media/filer_public/ab/ee/abee41ef-f5e5-44b6-91db-5e8befe48fe5/desta_list_of_treaties_02_01_dyads.xlsx">here</a>. The data set is from the <a href="https://www.designoftradeagreements.org/">DESTA</a> (Design of Trade Agreements) Database, a project that contains comprehensive data on various types of preferential trade agreements (PTAs). After downloading the data set, store the file in the same path as your R Project.</p>
+<p>First, create a new R Project on your computer. Make sure that you know where you save this R project. All of the outputs you have will be saved in this folder. Next, run the following lines of code to download the necessary R packages for this workshop.</p>
+<pre class="r"><code>#if any error message occurred, make sure you have installed these packages first before you load them
+library(readr) #to import data
+library(dplyr) #for data wrangling
+library(ggplot2) #for data visualization
+library(igraph) #we will primarily use igraph package in this workshop</code></pre>
+<p>Second, you will have to import the data, which we will use throughout the workshop, which you can inspect <a href="https://www.designoftradeagreements.org/media/filer_public/87/e2/87e266f0-5874-4596-913a-251e99ab6632/desta_list_of_treaties_02_01_dyads.csv">here</a>. The data set is from the <a href="https://www.designoftradeagreements.org/">DESTA</a> (Design of Trade Agreements) Database, a project that contains comprehensive data on various types of preferential trade agreements (PTAs).</p>
+<p>Now, you are ready to import the data to your RStudio workspace:</p>
+<pre class="r"><code>pta_data &lt;- read_csv(params$url) #the url is already predefined as a global parameter here.</code></pre>
+<pre class="r"><code>#inspect the data
+str(pta_data)</code></pre>
+<pre><code>## spec_tbl_df [18,329 × 16] (S3: spec_tbl_df/tbl_df/tbl/data.frame)
+##  $ country1      : chr [1:18329] &quot;Afghanistan&quot; &quot;Algeria&quot; &quot;Algeria&quot; &quot;Algeria&quot; ...
+##  $ country2      : chr [1:18329] &quot;India&quot; &quot;Egypt&quot; &quot;Ghana&quot; &quot;Guinea&quot; ...
+##  $ iso1          : num [1:18329] 4 12 12 12 12 12 818 818 818 818 ...
+##  $ iso2          : num [1:18329] 356 818 288 324 466 504 288 324 466 504 ...
+##  $ number        : chr [1:18329] &quot;1&quot; &quot;2&quot; &quot;2&quot; &quot;2&quot; ...
+##  $ base_treaty   : num [1:18329] 1 2 2 2 2 2 2 2 2 2 ...
+##  $ name          : chr [1:18329] &quot;Afghanistan India&quot; &quot;African Common Market&quot; &quot;African Common Market&quot; &quot;African Common Market&quot; ...
+##  $ entry_type    : chr [1:18329] &quot;base_treaty&quot; &quot;base_treaty&quot; &quot;base_treaty&quot; &quot;base_treaty&quot; ...
+##  $ consolidated  : num [1:18329] 0 0 0 0 0 0 0 0 0 0 ...
+##  $ year          : num [1:18329] 2003 1962 1962 1962 1962 ...
+##  $ entryforceyear: num [1:18329] 2003 1963 1963 1963 1963 ...
+##  $ language      : chr [1:18329] &quot;English&quot; &quot;English&quot; &quot;English&quot; &quot;English&quot; ...
+##  $ typememb      : num [1:18329] 1 2 2 2 2 2 2 2 2 2 ...
+##  $ regioncon     : chr [1:18329] &quot;Asia&quot; &quot;Africa&quot; &quot;Africa&quot; &quot;Africa&quot; ...
+##  $ wto_listed    : num [1:18329] 1 1 1 1 1 1 1 1 1 1 ...
+##  $ wto_name      : chr [1:18329] &quot;India Afghanistan&quot; &quot;African Common Market&quot; &quot;African Common Market&quot; &quot;African Common Market&quot; ...
+##  - attr(*, &quot;spec&quot;)=
+##   .. cols(
+##   ..   country1 = col_character(),
+##   ..   country2 = col_character(),
+##   ..   iso1 = col_double(),
+##   ..   iso2 = col_double(),
+##   ..   number = col_character(),
+##   ..   base_treaty = col_double(),
+##   ..   name = col_character(),
+##   ..   entry_type = col_character(),
+##   ..   consolidated = col_double(),
+##   ..   year = col_double(),
+##   ..   entryforceyear = col_double(),
+##   ..   language = col_character(),
+##   ..   typememb = col_double(),
+##   ..   regioncon = col_character(),
+##   ..   wto_listed = col_double(),
+##   ..   wto_name = col_character()
+##   .. )
+##  - attr(*, &quot;problems&quot;)=&lt;externalptr&gt;</code></pre>
+<pre class="r"><code>head(pta_data)</code></pre>
+<pre><code>## # A tibble: 6 × 16
+##   country1    country2  iso1  iso2 number base_treaty name  entry_type consolidated
+##   &lt;chr&gt;       &lt;chr&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;        &lt;dbl&gt; &lt;chr&gt; &lt;chr&gt;             &lt;dbl&gt;
+## 1 Afghanistan India        4   356 1                1 Afgh… base_trea…            0
+## 2 Algeria     Egypt       12   818 2                2 Afri… base_trea…            0
+## 3 Algeria     Ghana       12   288 2                2 Afri… base_trea…            0
+## 4 Algeria     Guinea      12   324 2                2 Afri… base_trea…            0
+## 5 Algeria     Mali        12   466 2                2 Afri… base_trea…            0
+## 6 Algeria     Morocco     12   504 2                2 Afri… base_trea…            0
+## # … with 7 more variables: year &lt;dbl&gt;, entryforceyear &lt;dbl&gt;, language &lt;chr&gt;,
+## #   typememb &lt;dbl&gt;, regioncon &lt;chr&gt;, wto_listed &lt;dbl&gt;, wto_name &lt;chr&gt;</code></pre>
 </div>
 </div>
 <div id="ii.-creating-a-network" class="section level1">
