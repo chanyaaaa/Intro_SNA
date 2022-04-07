@@ -16,7 +16,7 @@ knitr::opts_chunk$set(fig.align = 'center', echo = TRUE)
 ```
 
 # I. Getting to know the dataset
-Welcome to Introduction to Social Network Analysis workshop! This file will introduce to you the concept of social network analysis and its application to international law research. The workshop is specifically designed for law students with some limited backgrounds about R. If you have no knowledge or no background about R, I highly recommend that you take some basic introductions to R, including working with vectors, lists, matrices, data wrangling, and data visualization. Hence, in taking this workshop, I assume that you have some of those basic knowledge of R.
+Welcome to Introduction to Social Network Analysis workshop! This file will introduce to you the concept of social network analysis and its application to international law research. The workshop is specifically designed for law students with some limited backgrounds in R. If you have no knowledge or no background in R, I highly recommend that you take some basic introductions to R, including working with vectors, lists, matrices, data wrangling, and data visualization. Hence, in taking this workshop, I assume that you have some of those basic knowledge of R.
 
 The objectives of this workshop are:
 
@@ -137,10 +137,31 @@ plot.igraph(matrix_net)
 As you can see, the two networks look exactly the same!
 
 ## C. Construct the network of countries by their inter-regional PTAs
-Now, let's construct the network of countries by their inter-regional PTAs, using the edgelist data already provided in the DESTA data set.
+Now, let's construct the network of countries by their inter-regional PTAs, using the edgelist data already provided in the DESTA data set. Because the data structure is an edgelist data, we use `graph_from_edgelist()`. 
 
+```{r construct network}
+pta_intercon <- pta_data %>% filter(regioncon == "Intercontinental")
+pta_intercon_net <- graph_from_edgelist(cbind(pta_intercon$country1, pta_intercon$country2), directed = F) 
+```
+Now that we have successfully created the network, the next step is to assign the value to the ties for further uses. Useful variables to be assigned for the purpose of this workshop are: `name` and `year`. The function `E()` calls an edge sequence of the network, as identified by the corresponding indices. The function can also be used to assign edge based attributes. We will use this to assign some properties of the edges and the weights of edges. Here, we call the edges of the network, using `E()` followed by `$` and the name of the variable we wish to have, `agt_name` for the PTAs' names, and `year` for the year of these PTAs.
+
+```{r add other edge attributes}
+E(pta_intercon_net)$agt_name <- pta_intercon$name
+E(pta_intercon_net)$year <- pta_intercon$year
+```
+
+Note that there might be duplicated edges between a pair of countries, this is the case when the two countries have formed more than one PTA together. Instead of creating duplicated edges, we can assign a weight to each pair corresponding to the number of PTAs shared by the two countries. Next, using the `simplify()` function from the `igraph` package to simplify the network by removing loops and multiple edges. In doing so, `simplify()` can assign the sum of all duplicated edges to the `weight` of that edge.
+
+```{r simplify network}
+#set weighted ties:
+E(pta_intercon_net)$weight <- 1
+pta_intercon_net <- pta_intercon_net %>% simplify(edge.attr.comb = list(weight = "sum"))
+```
+
+It is also important to recognize that once we simplify the edges of the network, we will lose some information about `name` and `year` variables to those edges. The simplified network can be useful for the purpose of looking at the descriptives (to be covered in the next section). However, we the names or the years of PTAs are of importance to your analysis, you may have to revert back to the full network.
 
 # III. Descriptives of the network
+After we have successfully created the network, in this section, we will learn to explore some network properties -- the descriptives of the network. First, we will look at how to visualize the network. Thereafter, the basic network descriptions such as densitiy, degree distributions, and transitivity will be covered. Next, we will go over various types of network centralities to identify key players in the network.
 
 ## A. Simple visualizations
 
