@@ -46,6 +46,7 @@ Now, you are ready to import the data to your RStudio workspace:
 
 ```{r data, message = FALSE}
 pta_data <- read_csv(params$url) #the url is already predefined as a global parameter here.
+pta_data$regioncon <- as.factor(pta_data$regioncon) 
 ```
 
 ```{r inspect the data}
