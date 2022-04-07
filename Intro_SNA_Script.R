@@ -20,12 +20,14 @@ head(pta_data) #look at the first few rows of the data
 
 #Look at number of ties by PTAs
 pta_data_count <- pta_data %>% group_by(year, regioncon) %>% count(name)
+summary(pta_data_count)
+
 pta_tie_count <- pta_data %>% group_by(regioncon) %>% count(name)
 
 ggplot(pta_tie_count, aes(x = regioncon, y = n, color = regioncon, fill = regioncon)) +
   geom_col()
 
-ggplot(pta_data_count, aes(x = year, y = n)) +
+ggplot(pta_data_count, aes(x = year, y = n, color = regioncon, fill = regioncon)) +
   geom_col()
 
 ggplot(pta_data_count, aes(x = year, y = n, color = regioncon, fill = regioncon)) +
@@ -38,4 +40,6 @@ ggplot(pta_data_count, aes(x = year, y = n, color = regioncon, fill = regioncon)
 #only intercontinential ties and creating a network
 pta_intercon <- pta_data %>% filter(regioncon == "Intercontinental")
 pta_intercon_net <- graph_from_edgelist(cbind(pta_intercon$country1,pta_intercon$country2))
+
+
 

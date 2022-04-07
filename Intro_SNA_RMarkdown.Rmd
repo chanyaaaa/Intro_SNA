@@ -7,7 +7,7 @@ output:
     toc_float: true
 date: "Last edited `r format(Sys.Date(), '%B %d, %Y')`"
 params:
-  url: https://www.designoftradeagreements.org/media/filer_public/87/e2/87e266f0-5874-4596-913a-251e99ab6632/desta_list_of_treaties_02_01_dyads.csv
+  url: https://www.designoftradeagreements.org/media/filer_public/ab/ee/abee41ef-f5e5-44b6-91db-5e8befe48fe5/desta_list_of_treaties_02_01_dyads.xlsx
   
 ---
 
@@ -34,38 +34,111 @@ First, create a new R Project on your computer. Make sure that you know where yo
 
 ``` {r load necessary packages, message = FALSE}
 #if any error message occurred, make sure you have installed these packages first before you load them
-library(readr) #to import data
+library(readxl) #to import data
 library(dplyr) #for data wrangling
+library(knitr) #to show table on RMarkdown
 library(ggplot2) #for data visualization
 library(igraph) #we will primarily use igraph package in this workshop
 ```
 
-Second, you will have to import the data, which we will use throughout the workshop, which you can inspect [here](https://www.designoftradeagreements.org/media/filer_public/87/e2/87e266f0-5874-4596-913a-251e99ab6632/desta_list_of_treaties_02_01_dyads.csv). The data set is from the [DESTA](https://www.designoftradeagreements.org/) (Design of Trade Agreements) Database, a project that contains comprehensive data on various types of preferential trade agreements (PTAs).
+Second, you will have to import the data, which we will use throughout the workshop, which you can inspect [here](https://www.designoftradeagreements.org/media/filer_public/ab/ee/abee41ef-f5e5-44b6-91db-5e8befe48fe5/desta_list_of_treaties_02_01_dyads.xlsx). The data set is from the [DESTA](https://www.designoftradeagreements.org/) (Design of Trade Agreements) Database, a project that contains comprehensive data on various types of preferential trade agreements (PTAs).
 
 Now, you are ready to import the data to your RStudio workspace:
 
 ```{r data, message = FALSE}
-pta_data <- read_csv(params$url) #the url is already predefined as a global parameter here.
-pta_data$regioncon <- as.factor(pta_data$regioncon) 
+excel_file <- tempfile()
+download.file(params$url,excel_file, mode = "wb")
+pta_data <- read_excel(path = excel_file, sheet = 2)
+pta_data$regioncon <- as.factor(pta_data$regioncon)
 ```
 
 ```{r inspect the data}
 #inspect the data
-str(pta_data)
-head(pta_data)
+str(pta_data) #look at the structure of the data
+head(pta_data) #look at the first few rows of the data
 ```
 
-## B. Simplifying the data
-As you can see, there are so many
+## B. Exploring the data
+As you can see, the data we are dealing with is very large. Exploring data is crucial for quantitative approach to help us learn about the data, as well as to help us figure out what to do next with the data. We do so by trying to find some patterns from this data set first. Based on the data, two variables that could be of interest here are: year and the region to which a PTA belongs. A simple way to do this is to plot the data using ggplot2 package:
 
+```{r data exploration}
+pta_data_count <- pta_data %>% group_by(year, regioncon) %>% count(name) #this line counts the frequency of ties between any two countries formed by year and region.
+pta_data_count <- pta_data_count %>% arrange(desc(n))
+kable(head(pta_data_count), col.names = c("year", "region", "agreement name", "number of ties"),
+      caption = "Frequency of Ties Table")
+kable(summary(pta_data_count), col.names = c("year", "region", "agreement name", "number of ties"), 
+      caption = "A summary of the Frequency of Ties Data") #summary() provide a summary of the data
+```
+From a summary of data, notice that there are six different categories: Africa, Americas, Asia, Europe, Oceania, and Intercontinental. Most PTAs are intercontinental (382 agreements), while not surprisingly Oceania has only 12 intra-regional agreements. This is due to the number of member countries in the region. 
 
+Next, we are going to look at which countries tend to form multilateral PTAs and which countries tend to form bilateral PTAs:
 
+```{r regional preference}
+#filter the new data
+pta_data_count <- pta_data_count %>% mutate(bilat = ifelse(n == 1, "bilateral", "multilateral")) #creating a new variable to see if a tie belongs to a bilateral or multilateral treaty
+pta_data_count$bilat <- as.factor(pta_data_count$bilat)
+region_count <- pta_data_count %>% group_by(regioncon, bilat) %>% count(regioncon)
+ggplot(region_count, aes(x= regioncon, y = n, color = bilat, fill = bilat)) +
+  geom_col()
+```
+Out of this simple bar plot, we notice that countries in Africa prefer to have multilateral PTAs rather than bilateral ones, while countries in Americas and Asia clearly prefer to form bilateral PTAs instead of multilateral ones. Europe and Oceania are almost equally split between bilateral multilateral PTAs. Interestingly, the inter-regional PTAs are also ambivalent with regards to bilateral and multiplateral PTAs.
+
+```{r scatter plot}
+ggplot(pta_data_count, aes(x = year, y = n, color = regioncon, fill = regioncon)) +
+  geom_col() + facet_wrap(~regioncon)
+```
+Indeed, plotting how many ties formed each year by regions confirm our hypothesis that Africa stands out with the number of ties formed, along with intra-regional PTAs, followed by Europe. Asia, Americas and Oceania prefers to form bilateral agreements.
 
 # II. Creating a network
+Once we have preliminary explored the data, one of the directions we can take is to look at the inter-regional network because that is where PTAs have the most impact on inter-regional trade flows. What else could be further explored based on the data exploratory session? This is a food for thought, as well as for you to try social network analysis on your own.
+
+In this section, I will introduce how to create a network in R. There are two types of data structure that you can setup to construct:
+
+1. Edgelist
+2. Adjacency Matrix
+
+The edgelist is exactly what this DESTA database has done: the dyadic country relationship as shown in the first two coloumns, `country1`, and `country2`,  the original data set here:
+
+```{r edgelist data structure}
+head(pta_data)
+```
+Although to construct a simple network, you do not need other variables in the data set, it is useful to keep these variables to, as you will see later, set the tie properties in the network.
+
+Alternatively, you can also construct a network from an adjacency matrix as the underlying data structure.
+
+```{r turn the first six rows to an adjacency matrix}
+#ignore these two lines first, we will cover these functions later on
+#the point is to show an alternative data structure available to construct a network show in the output here
+temp_graph <- graph_from_edgelist(cbind(head(pta_data$country1), head(pta_data$country2)), directed = F)
+get.adjacency(temp_graph)
+```
 
 ## A. From the edgelist
+The function in `igraph` package, called `graph_from_edgelist()` will create a network from the edgelist data for you: 
+```{r edgelist network temp}
+cbind(head(pta_data$country1), head(pta_data$country2))
+edge_net <- graph_from_edgelist(cbind(head(pta_data$country1), head(pta_data$country2)),
+                                directed = F) #you have created the first network from edgelist!
+
+#see the network:
+set.seed(123) #set.seed() fixes the configuration of the plot for the sake of reproducibility and comparison in this case
+plot.igraph(edge_net) #don't worry about this we will cover this function in the next section
+```
 
 ## B. From the adjacency matrix
+To create a network from an adjacency matrix, call the function `graph_from_adjacency_matrix()` from the `igraph` package.
+
+```{r adjacency matrix network temp}
+get.adjacency(edge_net)
+matrix_net <- graph_from_adjacency_matrix(get.adjacency(edge_net), mode = "undirected")
+set.seed(123) #again, set.seed() here to make sure the plot looks similar
+plot.igraph(matrix_net)
+```
+As you can see, the two networks look exactly the same!
+
+## C. Construct the network of countries by their inter-regional PTAs
+Now, let's construct the network of countries by their inter-regional PTAs, using the edgelist data already provided in the DESTA data set.
+
 
 # III. Descriptives of the network
 
