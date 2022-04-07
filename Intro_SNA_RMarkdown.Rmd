@@ -54,7 +54,8 @@ str(pta_data)
 head(pta_data)
 ```
 
-
+## B. Simplifying the data
+As you can see, there are so many
 
 
 
