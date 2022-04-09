@@ -185,7 +185,7 @@ After we have successfully created the network, in this section, we will learn t
 ## A. Simple visualizations
 The main function for network visualization in `igraph` package is `plot.igraph()` which allows you to customize your network visuals. There are many options available for you to customize your own network. Examples given here are `vertex.size`, `vertex.color`, `vertex.label`, `vertex.label.cex`, `vertex.frame.color`, and `layout`. Note that `vertex.` specifies specific shapes, color, and size of the vertex. Similarly, if you want to customize the edges, you can do so by calling `edge.`, such as `edge.color` or `edge.width` to specify the thickness of the egdges. `edge.width` is often used for weighted graphs, showing different weights of the edges, as you shall see later on. For more specification, you can look it up [here](https://igraph.org/r/html/latest/plot.common.html), an R documentation for `plot.igraph()`.
 
-```{r simple visualizations, dpi=500, fig.width=10, fig.height=10, fig.cap = 'Network Visualization'}
+```{r simple visualizations, dpi=1000, fig.width=10, fig.height=10, fig.cap = 'Network Visualization'}
 set.seed(123)
 plot.igraph(pta_intercon_net,
             vertex.size = 5,
