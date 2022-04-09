@@ -35,9 +35,11 @@ First, create a new R Project on your computer. Make sure that you know where yo
 ``` {r load necessary packages, message = FALSE}
 #if any error message occurred, make sure you have installed these packages first before you load them
 library(readxl) #to import data
+library(tidyr) #reshaping date
 library(dplyr) #for data wrangling
 library(knitr) #to show table on RMarkdown
 library(ggplot2) #for data visualization
+library(RColorBrewer)
 library(igraph) #we will primarily use igraph package in this workshop
 ```
 
@@ -181,8 +183,9 @@ summary(pta_intercon_net) #print the number of vertices, edges,and whether the g
 After we have successfully created the network, in this section, we will learn to explore some network properties -- the descriptives of the network. First, we will look at how to visualize the network. Thereafter, the basic network descriptions such as density, degree distributions, and transitivity will be covered. Next, we will go over various types of network centralities to identify key players in the network.
 
 ## A. Simple visualizations
-The main function for network visualization in `igraph` package is `plot.igraph()` which allows you to customize your network visuals.
-```{r simple visualizations}
+The main function for network visualization in `igraph` package is `plot.igraph()` which allows you to customize your network visuals. There are many options available for you to customize your own network. Examples given here are `vertex.size`, `vertex.color`, `vertex.label`, `vertex.label.cex`, `vertex.frame.color`, and `layout`. Note that `vertex.` specifies specific shapes, color, and size of the vertex. Similarly, if you want to customize the edges, you can do so by calling `edge.`, such as `edge.color` or `edge.width` to specify the thickness of the egdges. `edge.width` is often used for weighted graphs, showing different weights of the edges, as you shall see later on. For more specification, you can look it up [here](https://igraph.org/r/html/latest/plot.common.html), an R documentation for `plot.igraph()`.
+
+```{r simple visualizations, dpi=500, fig.width=10, fig.height=10, fig.cap = 'Network Visualization'}
 set.seed(123)
 plot.igraph(pta_intercon_net,
             vertex.size = 5,
@@ -190,12 +193,13 @@ plot.igraph(pta_intercon_net,
             vertex.label = V(pta_intercon_net)$name,
             vertex.label.cex = .5,
             vertex.frame.color = NA,
-            layout = layout.fruchterman.reingold
+            layout = layout.fruchterman.reingold,
+            main = "The network of inter-regional PTAs"
             )
 ```
 The network is too dense to make much sense. However, you can spot certain clusters of countries, which will be further confirmed in the next sections.
 
-Many times, when we work with many nodes, it is harder to get the sense of how the network has been developed. If you have specific interests or investigation to pursue, we can do so by inspecting sub-network, using the `induce.subgraph()` and `subgraph.edge()` function.
+Many times, when we work with a huge data set, it is harder to get the sense of how the network has been developed. If you have specific interests or investigation to pursue, we can do so by inspecting sub-network, using the `induce.subgraph()` and `subgraph.edge()` function.
 
 Let's try first to separate the network into a multilateral network and a bilateral network. To do this, we use the variable `typememb` that comes with the original data set. According to the Codebook provided by DESTA, if a `typememb` variable equals to 1, then the underlying PTA forming that edge belongs to a bilateral PTA. As such, we assign another edge attribute, called `bilateral` to signify whether the edge belongs to a bilateral or multilateral PTA.
 
@@ -204,12 +208,13 @@ Let's try first to separate the network into a multilateral network and a bilate
 E(pta_intercon_net)$bilateral <- ifelse(pta_intercon$typememb == 1, 1,0)
 bilateral_var <- as.data.frame(E(pta_intercon_net)$bilateral)
 ggplot(bilateral_var, aes(x =E(pta_intercon_net)$bilateral)) +
-  geom_bar() +
+  geom_bar(fill = "steelblue", color = "steelblue") +
+  theme_minimal() +
   labs(x = "Bilateral/Multilateral Inter-Regional PTAs", y = "Count")
 ```
-As clearly shown in the bar graph here, overwhelmingly the inter-regional PTAs are multilateral. Now, we wil shift the focus to the network of bilateral inter-regional PTAs.
+As clearly shown in the bar graph here, overwhelmingly the inter-regional PTAs are multilateral. Now, we will shift the focus to the network of bilateral inter-regional PTAs to find some insights, using the network analysis.
 
-```{r visualzing subgraphs}
+```{r visualzing subgraphs, dpi=300, fig.width=7, fig.height=7}
 #bilateral inter-regional PTAs
 pta_intercon_bilat <- subgraph.edges(pta_intercon_net,which(E(pta_intercon_net)$bilateral == 1))
 plot(pta_intercon_bilat,
@@ -218,7 +223,8 @@ plot(pta_intercon_bilat,
      vertex.label = V(pta_intercon_bilat)$name,
      vertex.label.cex = .5,
      vertex.frame.color = NA,
-     layout = layout.fruchterman.reingold)
+     layout = layout.fruchterman.reingold,
+     main = "The network of bilateral inter-regional PTAs")
 
 #for a cleaner visual
 E(pta_intercon_bilat)$weight <- 1
@@ -230,12 +236,84 @@ plot(pta_intercon_bilat_sim,
      vertex.label.cex = .5,
      vertex.frame.color = NA,
      edge.width = E(pta_intercon_bilat_sim)$weight,
-     layout = layout.fruchterman.reingold)
+     layout = layout.fruchterman.reingold,
+     main = "The network of bilateral inter-regional PTAs (simplified)")
 ```
 
 ## B. Basic descriptions of the network
 
+
+```{r degree distribution}
+degree_dist_bilat <- as.data.frame(sort(degree(pta_intercon_bilat), decreasing = T))
+colnames(degree_dist_bilat) <- "degree"
+ggplot(degree_dist_bilat, aes(x = degree))+
+  geom_bar(fill = "steelblue", color = "steelblue") +
+  theme_minimal()
+```
+
+```{r density and transitivity}
+bilat_density <- edge_density(pta_intercon_bilat)
+bilat_transitivity <- transitivity(pta_intercon_bilat)
+
+#for the sake of comparison
+pta_density <- edge_density(pta_intercon_net)
+pta_transitivity <- transitivity(pta_intercon_net)
+
+bilat_density
+pta_density
+bilat_transitivity
+pta_transitivity
+```
+
 ## C. Network Centralities
+
+```{r centralities}
+V(pta_intercon_bilat)$degree_cen <- degree(pta_intercon_bilat, normalized = T)
+V(pta_intercon_bilat)$between_cen <- betweenness(pta_intercon_bilat, directed = F, normalized = T)
+V(pta_intercon_bilat)$close_cen <- closeness(pta_intercon_bilat, normalized = T)
+V(pta_intercon_bilat)$eigen_cen <- evcent(pta_intercon_bilat)$vector
+V(pta_intercon_bilat)$pgrank_cen <- page_rank(pta_intercon_bilat, directed = F)$vector
+
+centrality_mat <- cbind(V(pta_intercon_bilat)$degree_cen, 
+                        V(pta_intercon_bilat)$between_cen,
+                        V(pta_intercon_bilat)$close_cen,
+                        V(pta_intercon_bilat)$eigen_cen,
+                        V(pta_intercon_bilat)$pgrank_cen)
+
+colnames(centrality_mat) <- c("degree", "betweenness", "closeness", "eigenvector", "page rank")
+head(sort(degree(pta_intercon_bilat, normalized = T), decreasing = T))
+head(sort(betweenness(pta_intercon_bilat, directed = F, normalized = T), decreasing = T))
+head(sort(closeness(pta_intercon_bilat, normalized = T), decreasing = T))
+head(sort(evcent(pta_intercon_bilat)$vector, decreasing = T))
+head(sort(page_rank(pta_intercon_bilat, directed = F)$vector, decreasing = T))
+```
+
+By looking at the list of countries with top centralities score, we are able to identify countries that consistently feature in all types of centralities: Turkey, United Kingdom, Israel, Jordan, Chile, Canada, and Australia. We can deduce from the results that these countries have prioritized cross-regional bilateral PTAs much more than the rest of the world. 
+
+```{r correlations across different centralities}
+centrality_corr <- as.data.frame(cor(centrality_mat)) 
+centrality_corr <- cbind(centrality = rownames(centrality_corr), centrality_corr)
+gather_centrality <- gather(centrality_corr, key = "centrality_measure", value = "correlation", -centrality)
+
+ggplot(gather_centrality, aes(x=centrality, y = centrality_measure, fill = correlation)) +
+  geom_tile() +
+  scale_fill_distiller(palette = "PuBu", trans = "reverse") +
+  xlab("") +
+  ylab("")
+```
+
+```{r network visualization revistied, dpi=300, fig.width=7, fig.height=7, fig.cap = 'Revisiting Network Visualization with Centrality-Adjusted Vertex Sizes'}
+set.seed(123)
+plot(pta_intercon_bilat_sim,
+     vertex.size = V(pta_intercon_bilat)$eigen_cen*10,
+     vertex.color = "red",
+     vertex.label = V(pta_intercon_bilat_sim)$name,
+     vertex.label.cex = 0.5,
+     vertex.frame.color = NA,
+     edge.width = E(pta_intercon_bilat_sim)$weight,
+     layout = layout.fruchterman.reingold,
+     main = "The network of bilateral inter-regional PTAs (simplified)")
+```
 
 # IV. Community Detection
 
