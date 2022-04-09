@@ -141,7 +141,7 @@ Now, let's construct the network of countries by their inter-regional PTAs, usin
 
 ```{r construct network}
 pta_intercon <- pta_data %>% filter(regioncon == "Intercontinental")
-pta_intercon_net <- graph_from_edgelist(cbind(pta_intercon$country1, pta_intercon$country2), directed = F) 
+pta_intercon_net <- graph_from_edgelist(cbind(pta_intercon$country1, pta_intercon$country2), directed = F)
 ```
 Now that we have successfully created the network, the next step is to assign the value to the ties for further uses. Useful variables to be assigned for the purpose of this workshop are: `name` and `year`. The function `E()` calls an edge sequence of the network, as identified by the corresponding indices. The function can also be used to assign edge based attributes. We will use this to assign some properties of the edges and the weights of edges. Here, we call the edges of the network, using `E()` followed by `$` and the name of the variable we wish to have, `agt_name` for the PTAs' names, and `year` for the year of these PTAs.
 
@@ -155,20 +155,88 @@ Note that there might be duplicated edges between a pair of countries, this is t
 ```{r simplify network}
 #set weighted ties:
 E(pta_intercon_net)$weight <- 1
-pta_intercon_net <- pta_intercon_net %>% simplify(edge.attr.comb = list(weight = "sum"))
+pta_intercon_simp <- pta_intercon_net %>% simplify(edge.attr.comb = list(weight = "sum"))
 ```
 
 It is also important to recognize that once we simplify the edges of the network, we will lose some information about `name` and `year` variables to those edges. The simplified network can be useful for the purpose of looking at the descriptives (to be covered in the next section). However, we the names or the years of PTAs are of importance to your analysis, you may have to revert back to the full network.
 
+Similarly, you can also call the nodes of the network by using the function `V()` followed by the name of the node attribute. There are 191 country nodes engaged in inter-regional PTAs. We will be using this function a lot more later on.
+
+```{r node attribute call}
+head(V(pta_intercon_net)$name) #showing only the first 6 countries
+```
+
+You can look at the basic information by calling a function `summary()`. As shown in the output here, the line shows IGRAPH, indicating the type of the object and followed by a unique code of the graph. After we have three capital letter, `UNW`. `U` indicates that this network is undirected graph, as opposed to `D`, a directed graph. `N` indicates that the vertex attribute, `name`, has been set. And, `W` indicates that this graph is weighted (with `weight` edge attributes). Another letter `B` is for bipartite graphs, the `type` vertex attributes.
+
+After the two dashes, we have the number of vertices (191) and the number of edges (9316) reported. The second line reports a list of the attributes of the graph with the kind of the attribute, `g` for graph, `v` for vertex, and `e` for edge and the type of the attributes: `c` for character, `n` for numeric, `l` for logical, and `x` for other.
+
+Call a function ` print_all()` can show similar information but also the edges in the graph.
+
+```{r network information}
+summary(pta_intercon_net) #print the number of vertices, edges,and whether the graph is directed or not
+#print_all(pta_intercon_net) #This line is left out to save some spaces from showing all of the edges
+```
+
 # III. Descriptives of the network
-After we have successfully created the network, in this section, we will learn to explore some network properties -- the descriptives of the network. First, we will look at how to visualize the network. Thereafter, the basic network descriptions such as densitiy, degree distributions, and transitivity will be covered. Next, we will go over various types of network centralities to identify key players in the network.
+After we have successfully created the network, in this section, we will learn to explore some network properties -- the descriptives of the network. First, we will look at how to visualize the network. Thereafter, the basic network descriptions such as density, degree distributions, and transitivity will be covered. Next, we will go over various types of network centralities to identify key players in the network.
 
 ## A. Simple visualizations
+The main function for network visualization in `igraph` package is `plot.igraph()` which allows you to customize your network visuals.
+```{r simple visualizations}
+set.seed(123)
+plot.igraph(pta_intercon_net,
+            vertex.size = 5,
+            vertex.color = "red",
+            vertex.label = V(pta_intercon_net)$name,
+            vertex.label.cex = .5,
+            vertex.frame.color = NA,
+            layout = layout.fruchterman.reingold
+            )
+```
+The network is too dense to make much sense. However, you can spot certain clusters of countries, which will be further confirmed in the next sections.
+
+Many times, when we work with many nodes, it is harder to get the sense of how the network has been developed. If you have specific interests or investigation to pursue, we can do so by inspecting sub-network, using the `induce.subgraph()` and `subgraph.edge()` function.
+
+Let's try first to separate the network into a multilateral network and a bilateral network. To do this, we use the variable `typememb` that comes with the original data set. According to the Codebook provided by DESTA, if a `typememb` variable equals to 1, then the underlying PTA forming that edge belongs to a bilateral PTA. As such, we assign another edge attribute, called `bilateral` to signify whether the edge belongs to a bilateral or multilateral PTA.
+
+```{r generate subgraph}
+#Identify bilateral inter-regional PTAs
+E(pta_intercon_net)$bilateral <- ifelse(pta_intercon$typememb == 1, 1,0)
+bilateral_var <- as.data.frame(E(pta_intercon_net)$bilateral)
+ggplot(bilateral_var, aes(x =E(pta_intercon_net)$bilateral)) +
+  geom_bar() +
+  labs(x = "Bilateral/Multilateral Inter-Regional PTAs", y = "Count")
+```
+As clearly shown in the bar graph here, overwhelmingly the inter-regional PTAs are multilateral. Now, we wil shift the focus to the network of bilateral inter-regional PTAs.
+
+```{r visualzing subgraphs}
+#bilateral inter-regional PTAs
+pta_intercon_bilat <- subgraph.edges(pta_intercon_net,which(E(pta_intercon_net)$bilateral == 1))
+plot(pta_intercon_bilat,
+     vertex.size = 5,
+     vertex.color = "red",
+     vertex.label = V(pta_intercon_bilat)$name,
+     vertex.label.cex = .5,
+     vertex.frame.color = NA,
+     layout = layout.fruchterman.reingold)
+
+#for a cleaner visual
+E(pta_intercon_bilat)$weight <- 1
+pta_intercon_bilat_sim <- pta_intercon_bilat %>% simplify(edge.attr.comb = list(weight = "sum"))
+plot(pta_intercon_bilat_sim,
+     vertex.size = 5,
+     vertex.color = "red",
+     vertex.label = V(pta_intercon_bilat_sim)$name,
+     vertex.label.cex = .5,
+     vertex.frame.color = NA,
+     edge.width = E(pta_intercon_bilat_sim)$weight,
+     layout = layout.fruchterman.reingold)
+```
 
 ## B. Basic descriptions of the network
 
 ## C. Network Centralities
 
-# IV. Clustering and community detection
+# IV. Community Detection
 
 # V. More advanced topics
